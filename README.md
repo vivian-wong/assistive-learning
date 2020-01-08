@@ -11,4 +11,10 @@ Mask RCNN in this implementation is based on https://github.com/maxkferg/metal-d
 conda env create -f environment.yml
 ```
 2. Start Flask
+```
+export FLASK_APP=app.py
+export FLASK_ENV='development'
+export FLASK_DEBUG=0 
+```
+Note that DEBUG mode must be off. A tensorflow-keras error will occur if it is on (https://github.com/tensorflow/tensorflow/issues/34607)
 
