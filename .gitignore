@@ -1,1 +1,5 @@
 data
+mask_rcnn_max/data
+mask_rcnn_max/logs
+weights
+*.h5

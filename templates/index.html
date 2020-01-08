@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<script src="{{ url_for('static', filename='fabric.min.js') }}"></script>
+	<script src="{{ url_for('static', filename='jquery-3.4.1.js') }}"></script>
+	<title>Annotating GDXray</title>
+</head>
+<body>
+	<canvas id="c" width="416" height="416"></canvas>
+	<input type="button" value="Clear All" onclick="clearAll()">
+	<!-- <input type="button" value="Upload Dataset"> -->
+	
+	<form action="/sample" method="post" target="_blank">
+		<input type="submit" value="Contexual Sampling" onclick = "initializeCount()">
+	</form>
+
+	<!-- <input type="button" value="Contexual Sampling" onclick = "initializeCount()"> -->
+
+	<input type="button" value="Next Image" onclick="nextImage()">
+
+	<input type="button" id="detectBtn1" value="Detect with YOLOV3">
+
+	<input type="button" id="detectBtn2" value="Detect with Mask-RCNN">
+
+	<input type="button" value="Train" onclick="train()">
+
+	<h1> Instructions: </h1>
+	<ul>
+		<li>Drag and release to draw a bounding box </li>
+		<li>Click on an existing box to make it active </li>
+		<li>Active boxes can be scaled by draging the scaling points</li>
+		<li>Active boxes can also be deleted by typing the "Backspace"/"Delete" key on keyboard </li></li>
+		<li>Click "Clear All" to clear all boxes</li>
+		<li>Initial train set: 35 random images </li>
+		<li>TO BE PERFECTED: Sample button </li>
+		<li>TO BE IMPLEMENTED: Train </li>
+		<li>TO BE IMPLEMENTED: Tally current train set size and additional imgs annotated</li>
+		<li>TO BE IMPLEMENTED: streamline all buttons (idea: with after:render event?) </li>
+	</ul>
+
+	<script>
+		// Start canvas 
+		var canvas = new fabric.Canvas('c', {
+			selectionColor: '',
+			uniScaleTransform: true,
+		});
+		canvas.add(new fabric.Text('click sample first'))
+		// canvas.setBackgroundImage('http://localhost/annotatingInterface/yolov3/data/GDXray/images/Castings/C0001/C0001_0004.png ', canvas.renderAll.bind(canvas));
+
+		// Bounding box vars 
+		var rect, isDown, origX, origY;
+
+		// Drawing bounding boxes event listener
+		canvas.on('mouse:down', function(o){
+			if(canvas.getActiveObject()){
+				rect = canvas.getActiveObject();
+				return false;
+			};
+
+		    isDown = true;
+		    var pointer = canvas.getPointer(o.e);
+		    origX = pointer.x;
+		    origY = pointer.y;
+		    var pointer = canvas.getPointer(o.e);
+		    rect = new fabric.Rect({
+		        left: origX,
+		        top: origY,
+		        width: pointer.x-origX,
+		        height: pointer.y-origY,
+		        fill: '',
+				stroke: 'red',
+				strokeWidth: 1,
+				strokeUniform: true, // minor TO DO: doesn't work 
+				hasRotatingPoint: false
+		    });
+		    canvas.add(rect);
+		});
+
+		canvas.on('mouse:move', function(o){
+		    if (!isDown) return;
+
+		    var pointer = canvas.getPointer(o.e);
+
+		    if(origX>pointer.x){
+		        rect.set({ left: Math.abs(pointer.x) });
+		    }
+		    if(origY>pointer.y){
+		        rect.set({ top: Math.abs(pointer.y) });
+		    }
+		    rect.set({ width: Math.abs(origX - pointer.x), height: Math.abs(origY - pointer.y)});
+
+		    canvas.renderAll();
+		});
+
+		canvas.on('mouse:up', function(o){
+			if (isDown && canvas.getActiveObject()) {
+		    	canvas.discardActiveObject();
+		    };
+			isDown = false;
+			rect.setCoords();
+			console.log("x1=", rect.left, "y1=", rect.top, "w=", rect.width*rect.scaleX, "h=", rect.height*rect.scaleY); // width and height don't change after scaling. only scaleX and Y change. 
+		});
+
+		// Keyboard event listener
+		document.onkeydown = function(e) {
+			if (e.keyCode === 46 || e.keyCode === 8) {
+				var obs = canvas.getActiveObjects();
+				obs.forEach(function (object) {
+					canvas.remove(object);
+				});
+				canvas.discardActiveObject();
+			};
+		};
+
+		function initializeCount() {
+			// global variable to count images down the sampled list 
+			window.count = 34; // default render at the 36th image
+			// alert("Initial training size = 35. Click Next Image to go to the " + (window.count+2) + "th image")
+			// $.post("/sample",   // url
+			// 		{}, // data to be submit
+			// 		function(data, status, jqXHR) {// success callback
+			// 			console.log(data)
+			// 	});
+		}
+
+		// button functions
+		function clearAll() {
+			canvas.remove(...canvas.getObjects());
+		};
+		function nextImage() {
+			// If window.count is not 34, send current canvas's info to flask as JSON 
+			if (window.count !== 34) {
+				json = JSON.stringify(canvas);
+				$.post("/create_labels",   // url
+					json, // data to be submit
+					function(data, status, jqXHR) {// success callback
+						console.log(data)
+				});
+			}
+
+			// Show next image
+			clearAll();
+			var sampled_imgs
+			$.ajax({
+				url:'/sample',
+				success: function (data){
+					window.count = window.count + 1;
+					window.sampled_imgs = data.split('\n');
+					img = window.sampled_imgs[window.count];
+					console.log(img);
+					img = 'http://localhost/annotatingInterface/yolov3/'.concat(img);
+					canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
+					console.log((window.count+1) + "th image");
+				}
+			});
+		};
+
+		// send post request to send image for detection using YOLO
+		$(document).ready(function () {
+			$('#detectBtn1').click(function(){
+				$.post('/testYOLOV3',   // url
+					{ d: window.sampled_imgs[window.count] }, // data to be submit
+					function(data, status, jqXHR) {// success callback
+						console.log(data)
+						var json = JSON.parse(data)
+						for (var i = json.length - 1; i >= 0; i--) {
+							data = json[i]
+							rect = new fabric.Rect({
+						        left: data['x1'],
+						        top: data['y1'],
+						        width: data['x2']-data['x1'],
+						        height: data['y2']-data['y1'],
+						        fill: '',
+								stroke: 'red',
+								strokeWidth: 1,
+								strokeUniform: true, // minor TO DO: doesn't work 
+								hasRotatingPoint: false
+						    });
+						    canvas.add(rect);
+						}
+						
+				});
+			});
+		});
+
+		// send post request to send image for detection using Max's Mask RCNN; identical to YOLO except button ID and URL 
+		$(document).ready(function () {
+			$('#detectBtn2').click(function(){
+				$.post('/testMaskRCNN',   // url
+					{ d: window.sampled_imgs[window.count] }, // data to be submit
+					function(data, status, jqXHR) {// success callback
+						console.log(data)
+						var json = JSON.parse(data)
+						for (var i = json.length - 1; i >= 0; i--) {
+							data = json[i]
+							rect = new fabric.Rect({
+						        left: data['x1'],
+						        top: data['y1'],
+						        width: data['x2']-data['x1'],
+						        height: data['y2']-data['y1'],
+						        fill: '',
+								stroke: 'blue',
+								strokeWidth: 1,
+								strokeUniform: true, // minor TO DO: doesn't work 
+								hasRotatingPoint: false
+						    });
+						    canvas.add(rect);
+						}
+						
+				});
+			});
+		});
+
+		function train() {
+
+		};
+
+		// Text
+		canvas.text
+
+
+		canvas.renderAll();
+	</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+data/GDXray/images/Castings/C0041/C0041_0036.png
+data/GDXray/images/Castings/C0007/C0007_0021.png
+data/GDXray/images/Castings/C0030/C0030_0027.png
+data/GDXray/images/Castings/C0060/C0060_0001.png
+data/GDXray/images/Castings/C0033/C0033_0005.png
+data/GDXray/images/Castings/C0031/C0031_0010.png
+data/GDXray/images/Castings/C0008/C0008_0029.png
+data/GDXray/images/Castings/C0036/C0036_0026.png
+data/GDXray/images/Castings/C0010/C0010_0036.png
+data/GDXray/images/Castings/C0041/C0041_0009.png
+data/GDXray/images/Castings/C0010/C0010_0030.png
+data/GDXray/images/Castings/C0034/C0034_0029.png
+data/GDXray/images/Castings/C0057/C0057_0018.png
+data/GDXray/images/Castings/C0001/C0001_0023.png
+data/GDXray/images/Castings/C0001/C0001_0019.png
