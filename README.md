@@ -14,7 +14,11 @@ conda env create -f environment.yml
 ```
 export FLASK_APP=app.py
 export FLASK_ENV='development'
-export FLASK_DEBUG=0 
+export FLASK_DEBUG=0
+flask run
 ```
 Note that DEBUG mode must be off. A tensorflow-keras error will occur if it is on (https://github.com/tensorflow/tensorflow/issues/34607)
 
+3. Click "contextual sampling"
+
+4. Close the generated sampled txt file. Navigate to the next image and annotate. Use detection and training button when appropriate. 
